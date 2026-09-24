@@ -3,22 +3,22 @@ import { Appearance } from 'react-native';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Premium, past-to'yingan palitra — bitta muloyim oltin urg'u, ko'pi neytral
+// Professional, yorug' — zumrad brend (desktop bilan bir xil)
 export const lightColors = {
-  bg: '#F5F5F3', bgElevated: '#FFFFFF', bgCard: '#FFFFFF', bgInput: '#ECECE8',
-  border: 'rgba(20,20,22,0.08)', borderStrong: 'rgba(20,20,22,0.14)',
-  text: '#1A1A1D', textMuted: 'rgba(26,26,29,0.55)', textDim: 'rgba(26,26,29,0.34)',
-  primary: '#A9793C', primaryDark: '#8F6531', accent: '#A9793C',
-  success: '#3F8E6B', warning: '#9A7B37', danger: '#B85B4E', info: '#4A6FA5', onPrimary: '#FFFFFF',
+  bg: '#F4F6F8', bgElevated: '#FFFFFF', bgCard: '#FFFFFF', bgInput: '#F1F3F6',
+  border: 'rgba(14,23,38,0.09)', borderStrong: 'rgba(14,23,38,0.16)',
+  text: '#0E1726', textMuted: 'rgba(14,23,38,0.56)', textDim: 'rgba(14,23,38,0.36)',
+  primary: '#0B7A56', primaryDark: '#095E43', accent: '#0E9F6E',
+  success: '#0E9F6E', warning: '#C27803', danger: '#E5484D', info: '#3E7BFA', onPrimary: '#FFFFFF',
 };
 export const darkColors = {
-  bg: '#0C0D10', bgElevated: '#131418', bgCard: '#16171C', bgInput: '#1D1F25',
-  border: 'rgba(255,255,255,0.06)', borderStrong: 'rgba(255,255,255,0.12)',
-  text: '#F0F1F3', textMuted: 'rgba(240,241,243,0.52)', textDim: 'rgba(240,241,243,0.30)',
-  primary: '#C6A063', primaryDark: '#AD8A50', accent: '#C6A063',
-  success: '#5FA98A', warning: '#C2A366', danger: '#CE8175', info: '#7E9BC4', onPrimary: '#14110A',
+  bg: '#0B1512', bgElevated: '#12201B', bgCard: '#14241E', bgInput: '#1B2E27',
+  border: 'rgba(255,255,255,0.07)', borderStrong: 'rgba(255,255,255,0.14)',
+  text: '#EAF2EE', textMuted: 'rgba(234,242,238,0.56)', textDim: 'rgba(234,242,238,0.34)',
+  primary: '#15B37E', primaryDark: '#0E9F6E', accent: '#15B37E',
+  success: '#15B37E', warning: '#D9A441', danger: '#E86A6A', info: '#5B9BF0', onPrimary: '#04120D',
 };
-export const colors: any = { ...darkColors };
+export const colors: any = { ...lightColors };
 
 export const fontSize: any = { xs: 11, sm: 13, md: 15, lg: 17, xl: 20, xxl: 26, hero: 34 };
 export const radii = { xs: 8, sm: 12, md: 16, lg: 20, xl: 26, pill: 999 };
@@ -40,7 +40,7 @@ let sub: any = null;
 export const useTheme = create<ThemeState>((set, get) => ({
   mode: 'auto', resolved: resolve('auto'), ready: false,
   async hydrate() {
-    let mode: ThemeMode = 'auto';
+    let mode: ThemeMode = 'light';
     try { const m = await AsyncStorage.getItem('alqanot_boss_theme'); if (m === 'light' || m === 'dark' || m === 'auto') mode = m; } catch {}
     const resolved = apply(mode);
     set({ mode, resolved, ready: true });
