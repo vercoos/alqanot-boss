@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "AL QANOT Boshliq",
+    "slug": "alqanot-boss",
+    "scheme": "alqanotboss",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0E12"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "uz.alqanot.boss",
+      "versionCode": 1,
+      "permissions": ["INTERNET"]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.alqanot.boss"
+    },
+    "extra": {
+      "apiBase": "http://72.60.17.70:6010"
+    }
+  }
+}
