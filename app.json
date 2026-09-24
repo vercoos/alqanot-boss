@@ -17,6 +17,7 @@
     "android": {
       "package": "uz.alqanot.boss",
       "versionCode": 1,
+      "usesCleartextTraffic": true,
       "permissions": ["INTERNET"]
     },
     "ios": {

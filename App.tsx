@@ -12,6 +12,7 @@ import { useAuth } from './src/store';
 import { useTheme, colors } from './src/theme';
 import { loadApiBase } from './src/api';
 import { connectSocket, disconnectSocket } from './src/socket';
+import { checkUpdate } from './src/update';
 import Login from './src/screens/Login';
 import Harita from './src/screens/Harita';
 import Buyurtmalar from './src/screens/Buyurtmalar';
@@ -76,7 +77,7 @@ export default function App() {
 
   useEffect(() => { (async () => { await loadApiBase(); hydrateTheme(); hydrate(); })(); }, []);
   useEffect(() => {
-    if (user) connectSocket();
+    if (user) { connectSocket(); checkUpdate(true); }
     else disconnectSocket();
   }, [user]);
 

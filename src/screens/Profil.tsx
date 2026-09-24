@@ -3,6 +3,7 @@ import { View, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../store';
 import { useTheme, colors, spacing } from '../theme';
+import { checkUpdate } from '../update';
 import { T, Button, Card } from '../components/ui';
 
 export default function Profil() {
@@ -30,6 +31,8 @@ export default function Profil() {
           ))}
         </View>
 
+        <Button title="Yangilanishni tekshirish" icon="cloud-download-outline" variant="ghost"
+          onPress={() => checkUpdate(false)} style={{ marginBottom: 12 }} />
         <Button title="Chiqish" icon="log-out" variant="danger"
           onPress={() => Alert.alert('Chiqish', 'Rostdan chiqasizmi?', [{ text: 'Yo\'q' }, { text: 'Ha', onPress: () => logout() }])} />
       </ScrollView>
