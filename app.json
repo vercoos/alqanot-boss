@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "AL QANOT Boshliq",
-    "slug": "alqanot-boss",
-    "scheme": "alqanotboss",
+    "name": "AL QANOT",
+    "slug": "alqanot",
+    "scheme": "alqanot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,20 +11,28 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B0E12"
+      "backgroundColor": "#0B7A56"
     },
     "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      ["expo-location", {
+        "locationAlwaysAndWhenInUsePermission": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun.",
+        "locationWhenInUsePermission": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun."
+      }]
+    ],
     "android": {
-      "package": "uz.alqanot.boss",
+      "package": "uz.alqanot.app",
       "versionCode": 1,
       "usesCleartextTraffic": true,
-      "permissions": ["INTERNET"]
+      "permissions": ["INTERNET", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uz.alqanot.boss",
+      "bundleIdentifier": "uz.alqanot.app",
       "infoPlist": {
-        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true },
+        "NSLocationWhenInUseUsageDescription": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun."
       }
     },
     "extra": {

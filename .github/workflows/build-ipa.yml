@@ -48,7 +48,7 @@ jobs:
           rm -rf Payload && mkdir Payload
           cp -R "$APP" Payload/
           mkdir -p output
-          zip -r -y output/AlQanot-Boss.ipa Payload >/dev/null
+          zip -r -y output/AlQanot.ipa Payload >/dev/null
           ls -lh output
 
       - name: Publish IPA to GitHub Release
@@ -56,7 +56,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           IPA=$(ls ios/output/*.ipa | head -1)
-          cp "$IPA" alqanot-boss.ipa
-          ls -lh alqanot-boss.ipa
-          gh release create boss-ipa --title "AL QANOT Boshliq IPA" --notes "avtomatik build" 2>/dev/null || true
-          gh release upload boss-ipa alqanot-boss.ipa --clobber
+          cp "$IPA" alqanot.ipa
+          ls -lh alqanot.ipa
+          gh release create app-ipa --title "AL QANOT IPA" --notes "avtomatik build" 2>/dev/null || true
+          gh release upload app-ipa alqanot.ipa --clobber

@@ -11,14 +11,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from './src/store';
 import { useTheme, colors } from './src/theme';
 import { loadApiBase } from './src/api';
-import { connectSocket, disconnectSocket } from './src/socket';
+import { connectSocket, disconnectSocket, startTracking, stopTracking } from './src/socket';
 import { checkUpdate } from './src/update';
 import Login from './src/screens/Login';
 import Harita from './src/screens/Harita';
-import Buyurtmalar from './src/screens/Buyurtmalar';
+import Tasdiqlash from './src/screens/Tasdiqlash';
 import Tolovlar from './src/screens/Tolovlar';
 import Qarzlar from './src/screens/Qarzlar';
 import Profil from './src/screens/Profil';
+import Yuk from './src/screens/Yuk';
+import YukDetail from './src/screens/YukDetail';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state: { error: Error | null } = { error: null };
@@ -46,13 +48,14 @@ const Tab = createBottomTabNavigator();
 
 const ICONS: Record<string, [string, string]> = {
   Harita: ['map', 'map-outline'],
-  Buyurtmalar: ['receipt', 'receipt-outline'],
+  Tasdiqlash: ['checkmark-done', 'checkmark-done-outline'],
   Tolovlar: ['cash', 'cash-outline'],
   Qarzlar: ['wallet', 'wallet-outline'],
   Profil: ['person', 'person-outline'],
 };
 
-function Tabs() {
+// Boshliq / bugalter oynasi
+function BossTabs() {
   return (
     <Tab.Navigator screenOptions={({ route }) => ({
       headerShown: false,
@@ -66,11 +69,21 @@ function Tabs() {
       },
     })}>
       <Tab.Screen name="Harita" component={Harita} />
-      <Tab.Screen name="Buyurtmalar" component={Buyurtmalar} />
+      <Tab.Screen name="Tasdiqlash" component={Tasdiqlash} />
       <Tab.Screen name="Tolovlar" component={Tolovlar} options={{ title: "To'lovlar" }} />
       <Tab.Screen name="Qarzlar" component={Qarzlar} />
       <Tab.Screen name="Profil" component={Profil} />
     </Tab.Navigator>
+  );
+}
+
+// Kuryer oynasi — harita YO'Q, faqat yuk + pul, fonda GPS
+function KuryerStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Yuk" component={Yuk} />
+      <Stack.Screen name="YukDetail" component={YukDetail} />
+    </Stack.Navigator>
   );
 }
 
@@ -80,8 +93,14 @@ export default function App() {
 
   useEffect(() => { (async () => { await loadApiBase(); hydrateTheme(); hydrate(); })(); }, []);
   useEffect(() => {
-    if (user) { connectSocket(); checkUpdate(true); }
-    else disconnectSocket();
+    if (user) {
+      if (user.role === 'kuryer') startTracking();
+      else connectSocket();
+      checkUpdate(true);
+    } else {
+      stopTracking();
+      disconnectSocket();
+    }
   }, [user]);
 
   if (!hydrated || !ready) {
@@ -92,13 +111,21 @@ export default function App() {
     ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bgElevated, text: colors.text, primary: colors.primary, border: colors.border } }
     : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.bgElevated, text: colors.text, primary: colors.primary, border: colors.border } };
 
+  const isKuryer = user?.role === 'kuryer';
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
         <NavigationContainer theme={navTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {!user ? <Stack.Screen name="Login" component={Login} /> : <Stack.Screen name="Main" component={Tabs} />}
+            {!user ? (
+              <Stack.Screen name="Login" component={Login} />
+            ) : isKuryer ? (
+              <Stack.Screen name="Kuryer" component={KuryerStack} />
+            ) : (
+              <Stack.Screen name="Boss" component={BossTabs} />
+            )}
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>

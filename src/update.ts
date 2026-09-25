@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
 import { getApiBase } from './api';
 
-const APP_KEY = 'boss';
+const APP_KEY = 'mobile';
 
 function cmp(a: string, b: string) {
   const pa = String(a).split('.').map((n) => parseInt(n) || 0);
@@ -15,6 +15,7 @@ function cmp(a: string, b: string) {
   return 0;
 }
 
+// silent=true — startupда jim tekshiruv; false — tugma bosilганда
 export async function checkUpdate(silent = false) {
   try {
     const cur = Constants.expoConfig?.version || '1.0.0';

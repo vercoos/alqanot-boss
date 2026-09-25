@@ -27,7 +27,7 @@ export default function Login() {
             <Ionicons name="shield-checkmark" size={40} color={colors.primary} />
           </View>
           <T size="hero" weight="900">AL QANOT</T>
-          <T size="sm" color={colors.textMuted} weight="600">Boshliq ilovasi</T>
+          <T size="sm" color={colors.textMuted} weight="600">Login va parol bilan kiring</T>
         </View>
         <Input label="Telefon" value={phone} onChangeText={setPhone} placeholder="901234567" keyboardType="phone-pad" />
         <Input label="Parol" value={password} onChangeText={setPassword} placeholder="••••••" secure />

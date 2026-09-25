@@ -3,14 +3,14 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const extra: any = Constants.expoConfig?.extra || {};
-// Server manzili ish vaqtida o'zgartiriladi (login ekranida) — qayta build shart emas.
-let base: string = extra.apiBase || 'http://192.168.1.100:6010';
+// Server manzili app.json'дан (qat'iy). Eski saqlangan qiymat tozalanadi.
+const base: string = extra.apiBase || 'http://72.60.17.70:6010';
 const K_TOKEN = 'alqanot-boss-token';
 const K_API = 'alqanot_api';
 
 export function getApiBase() { return base; }
-export async function loadApiBase() { try { const v = await AsyncStorage.getItem(K_API); if (v) base = v; } catch {} return base; }
-export async function setApiBase(v: string) { base = (v || '').trim().replace(/\/+$/, ''); try { await AsyncStorage.setItem(K_API, base); } catch {} }
+export async function loadApiBase() { try { await AsyncStorage.removeItem(K_API); } catch {} return base; }
+export async function setApiBase(_v: string) { /* server hardcode — o'zgartirilmaydi */ }
 
 export const store = {
   getToken: () => SecureStore.getItemAsync(K_TOKEN),
