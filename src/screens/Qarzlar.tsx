@@ -6,7 +6,7 @@ import { api } from '../api';
 import { T, money, Card } from '../components/ui';
 import { colors, spacing, radii } from '../theme';
 
-export default function Qarzlar() {
+export default function Qarzlar({ navigation }: any) {
   const [tab, setTab] = useState<'client' | 'supplier'>('client');
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -26,7 +26,10 @@ export default function Qarzlar() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ paddingTop: 54, paddingBottom: 14, paddingHorizontal: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <T size="xl" weight="900">Qarzlar</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {navigation && <Ionicons name="chevron-back" size={26} color={colors.text} onPress={() => navigation.goBack()} />}
+          <T size="xl" weight="900">Qarzlar</T>
+        </View>
       </View>
       {loading ? <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 60 }} /> : (
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 40 }}

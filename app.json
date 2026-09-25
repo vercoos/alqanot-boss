@@ -3,7 +3,7 @@
     "name": "AL QANOT",
     "slug": "alqanot",
     "scheme": "alqanot",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -25,7 +25,7 @@
     ],
     "android": {
       "package": "uz.alqanot.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "usesCleartextTraffic": true,
       "permissions": ["INTERNET", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },

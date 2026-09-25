@@ -3,11 +3,13 @@ import { View, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'reac
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
+import { useAuth } from '../store';
 import { getSocket } from '../socket';
 import { T, money, Badge, Button, Card } from '../components/ui';
 import { colors, spacing } from '../theme';
 
-export default function Tolovlar() {
+export default function Tolovlar({ navigation }: any) {
+  const role = useAuth((s) => s.user?.role);
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,14 +28,18 @@ export default function Tolovlar() {
   }, [load]);
 
   const confirm = async (id: number) => {
-    try { await api.post(`/api/payments/${id}/confirm-boss`); load(); }
+    const url = role === 'buxgalter' ? `/api/payments/${id}/confirm-buxgalter` : `/api/payments/${id}/confirm-boss`;
+    try { await api.post(url); load(); }
     catch (e: any) { Alert.alert('Xato', e.message); }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ paddingTop: 54, paddingBottom: 10, paddingHorizontal: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <T size="xl" weight="900">To'lovlar</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {navigation && <Ionicons name="chevron-back" size={26} color={colors.text} onPress={() => navigation.goBack()} />}
+          <T size="xl" weight="900">To'lovlar</T>
+        </View>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
           {(['pending', 'confirmed'] as const).map((t) => (
             <Button key={t} title={t === 'pending' ? 'Kutilmoqda' : 'Tasdiqlangan'} variant={tab === t ? 'primary' : 'ghost'} onPress={() => setTab(t)} style={{ flex: 1, paddingVertical: 9 }} />
