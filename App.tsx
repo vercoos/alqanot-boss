@@ -17,6 +17,7 @@ import Login from './src/screens/Login';
 import Harita from './src/screens/Harita';
 import Buyurtmalar from './src/screens/Buyurtmalar';
 import Tolovlar from './src/screens/Tolovlar';
+import Qarzlar from './src/screens/Qarzlar';
 import Profil from './src/screens/Profil';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
@@ -47,6 +48,7 @@ const ICONS: Record<string, [string, string]> = {
   Harita: ['map', 'map-outline'],
   Buyurtmalar: ['receipt', 'receipt-outline'],
   Tolovlar: ['cash', 'cash-outline'],
+  Qarzlar: ['wallet', 'wallet-outline'],
   Profil: ['person', 'person-outline'],
 };
 
@@ -66,6 +68,7 @@ function Tabs() {
       <Tab.Screen name="Harita" component={Harita} />
       <Tab.Screen name="Buyurtmalar" component={Buyurtmalar} />
       <Tab.Screen name="Tolovlar" component={Tolovlar} options={{ title: "To'lovlar" }} />
+      <Tab.Screen name="Qarzlar" component={Qarzlar} />
       <Tab.Screen name="Profil" component={Profil} />
     </Tab.Navigator>
   );
