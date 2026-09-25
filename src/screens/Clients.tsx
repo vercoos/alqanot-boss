@@ -1,166 +1,156 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, TextInput, TouchableOpacity, Modal, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
-import { Header, T, money, Button, Row } from '../components/ui';
-import { colors, spacing, radii, fontSize } from '../theme';
+import { Card, Row, T, Button, Input, money } from '../components/ui';
+import { colors, spacing, radii } from '../theme';
 
-// kind: 'client' | 'supplier' — bir ekran ikkalasiga (Clients + Suppliers)
-export default function Parties({ navigation, kind = 'client' }: any) {
-  const isC = kind === 'client';
-  const path = isC ? 'clients' : 'suppliers';
-  const [rows, setRows] = useState<any[]>([]);
-  const [q, setQ] = useState('');
+export default function Clients({ navigation }: any) {
+  const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [payFor, setPayFor] = useState<any>(null);
+  const [q, setQ] = useState('');
+  const [edit, setEdit] = useState<any>(null);
+  const [uname, setUname] = useState(''); const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [nf, setNf] = useState<any>({ firstName: '', lastName: '', phone: '', address: '', username: '', password: '' });
+  const [payClient, setPayClient] = useState<any>(null);
+  const [payAmount, setPayAmount] = useState('');
 
-  const load = useCallback(async () => {
-    try { setRows((await api.get(`/api/${path}`)) || []); } catch {} finally { setLoading(false); setRefreshing(false); }
-  }, [path]);
+  const doPay = async () => {
+    if (!(parseFloat(payAmount) > 0)) { Alert.alert('Summa', 'Summani kiriting'); return; }
+    setBusy(true);
+    try { await api.post('/boss/payment/client', { clientId: payClient.id, amount: parseFloat(payAmount) }); setPayClient(null); setPayAmount(''); Alert.alert('Tayyor', 'To\'lov qabul qilindi — qarzdan ayrildi'); load(); }
+    catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
+  };
+
+  const createNew = async () => {
+    if (!nf.firstName.trim() || !nf.phone.trim()) { Alert.alert('Maydonlar', 'Ism va telefon shart'); return; }
+    setBusy(true);
+    try {
+      await api.post('/boss/client-new', nf);
+      setNewOpen(false); setNf({ firstName: '', lastName: '', phone: '', address: '', username: '', password: '' });
+      Alert.alert('Tayyor', 'Yangi mijoz qo\'shildi' + (nf.username && nf.password ? ' (ilova login bilan)' : '')); load();
+    } catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
+  };
+
+  const load = useCallback(async () => { try { setList(await api.get('/boss/clients') || []); } catch {} finally { setLoading(false); setRefreshing(false); } }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const list = q ? rows.filter((r) => (r.name || '').toLowerCase().includes(q.toLowerCase()) || (r.phone || '').includes(q)) : rows;
-  const totalDebt = rows.reduce((s, r) => s + (Number(r.debt) || 0), 0);
+  const openEdit = (c: any) => { setEdit(c); setUname(c.username || ''); setPw(''); };
+  const save = async () => {
+    if (!uname.trim()) { Alert.alert('Login', 'Username kiriting'); return; }
+    if (!edit.has_login && !pw) { Alert.alert('Parol', 'Yangi login uchun parol kiriting'); return; }
+    setBusy(true);
+    try {
+      await api.post('/boss/client-auth', { clientId: edit.id, username: uname.trim(), password: pw || undefined, resetPassword: !!pw });
+      setEdit(null); Alert.alert('Tayyor', 'Mijoz login ma\'lumoti saqlandi'); load();
+    } catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
+  };
+
+  const filtered = list.filter((c) => !q || `${c.first_name} ${c.last_name} ${c.phone}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Header title={isC ? 'Mijozlar' : 'Yetkazuvchilar'} subtitle={`${rows.length} ta · jami qarz ${money(totalDebt)}`} onBack={navigation ? () => navigation.goBack() : undefined} />
-      <View style={{ padding: spacing.lg, paddingBottom: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgInput, borderRadius: radii.md, paddingHorizontal: 12 }}>
+      <View style={{ paddingTop: 56, paddingBottom: 12, paddingHorizontal: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <Row justify="space-between" style={{ marginBottom: 10 }}>
+          <View style={{ width: 26 }} />
+          <T size="lg" weight="800">Mijozlar</T>
+          <TouchableOpacity onPress={() => setNewOpen(true)}><Ionicons name="person-add" size={24} color={colors.primary} /></TouchableOpacity>
+        </Row>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgInput, borderRadius: radii.md, paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border }}>
           <Ionicons name="search" size={18} color={colors.textDim} />
-          <TextInput value={q} onChangeText={setQ} placeholder="Qidirish" placeholderTextColor={colors.textDim}
-            style={{ flex: 1, padding: 12, color: colors.text, fontWeight: '600' }} />
+          <TextInput value={q} onChangeText={setQ} placeholder="Qidirish..." placeholderTextColor={colors.textDim} style={{ flex: 1, color: colors.text, paddingVertical: 12, marginLeft: 8 }} />
         </View>
       </View>
-      {loading ? <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 40 }} /> : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 100 }}
+      {loading ? <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 60 }} /> : (
+        <ScrollView contentContainerStyle={{ padding: spacing.lg }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.primary} />}>
-          {list.map((r) => (
-            <TouchableOpacity key={r.id} activeOpacity={0.85} onPress={() => openDetail(r.id)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.bgCard, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginBottom: 8 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: colors.primary + '16', alignItems: 'center', justifyContent: 'center' }}>
-                <T weight="800" color={colors.primary}>{(r.name || '?').slice(0, 1).toUpperCase()}</T>
-              </View>
-              <View style={{ flex: 1 }}>
-                <T weight="800" numberOfLines={1}>{r.name}</T>
-                <T size="xs" color={colors.textMuted} weight="600">{r.phone || '—'}</T>
-              </View>
-              <T weight="900" color={r.debt > 0 ? colors.danger : colors.success}>{money(r.debt || 0)}</T>
-            </TouchableOpacity>
+          {filtered.map((c) => (
+            <Card key={c.id} style={{ marginBottom: 10 }} onPress={() => navigation.navigate('MijozTarix', { id: c.id, name: `${c.first_name} ${c.last_name}` })}>
+              <Row justify="space-between">
+                <View style={{ flex: 1 }}>
+                  <T size="md" weight="700">{c.first_name} {c.last_name}</T>
+                  <T size="xs" color={colors.textMuted}>{c.phone}</T>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  {c.debt > 0 ? (
+                    <TouchableOpacity onPress={() => { setPayClient(c); setPayAmount(''); }} style={{ alignItems: 'flex-end' }}>
+                      <T size="sm" weight="800" color={colors.danger}>{money(c.debt)}</T>
+                      <View style={{ marginTop: 3, backgroundColor: colors.success + '18', paddingHorizontal: 10, paddingVertical: 3, borderRadius: radii.pill, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="cash-outline" size={12} color={colors.success} /><T size="xs" weight="800" color={colors.success}>To'lash</T>
+                      </View>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name={c.has_login ? 'checkmark-circle' : 'ellipse-outline'} size={13} color={c.has_login ? colors.success : colors.textDim} />
+                      <T size="xs" color={c.has_login ? colors.success : colors.textDim} weight="600">{c.has_login ? 'Login bor' : 'Login yo\'q'}</T>
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity onPress={() => openEdit(c)} hitSlop={8} style={{ marginLeft: 10, padding: 4 }}><Ionicons name="key-outline" size={18} color={colors.textDim} /></TouchableOpacity>
+              </Row>
+            </Card>
           ))}
-          {list.length === 0 && <T color={colors.textMuted} style={{ textAlign: 'center', marginTop: 30 }}>Topilmadi</T>}
         </ScrollView>
       )}
-      <TouchableOpacity onPress={() => setAddOpen(true)} activeOpacity={0.9}
-        style={{ position: 'absolute', right: 18, bottom: 22, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 7 }}>
-        <Ionicons name="person-add" size={24} color="#fff" />
-      </TouchableOpacity>
 
-      <DetailModal kind={kind} detail={detail} onClose={() => setDetail(null)} onPay={() => { setPayFor(detail); setDetail(null); }} />
-      <AddModal kind={kind} visible={addOpen} onClose={() => setAddOpen(false)} onDone={() => { setAddOpen(false); load(); }} />
-      <PayModal kind={kind} party={payFor} onClose={() => setPayFor(null)} onDone={() => { setPayFor(null); load(); }} />
-    </View>
-  );
+      <Modal visible={!!edit} transparent animationType="fade" onRequestClose={() => setEdit(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.xl }}>
+          {edit && (
+            <View style={{ backgroundColor: colors.bg, borderRadius: radii.xl, padding: spacing.xl }}>
+              <T size="lg" weight="800">{edit.first_name} {edit.last_name}</T>
+              <T size="sm" color={colors.textMuted} style={{ marginBottom: spacing.lg }}>{edit.has_login ? 'Login ma\'lumotini o\'zgartirish' : 'Ilova uchun login/parol berish'}</T>
+              <Input label="Username (login)" value={uname} onChangeText={setUname} placeholder="mijoz_login" icon="person-outline" />
+              <Input label={edit.has_login ? 'Yangi parol (bo\'sh — o\'zgarmaydi)' : 'Parol'} value={pw} onChangeText={setPw} placeholder="••••••" secure icon="lock-closed-outline" />
+              <Row gap={spacing.md} style={{ marginTop: 4 }}>
+                <View style={{ flex: 1 }}><Button title="Bekor" variant="secondary" onPress={() => setEdit(null)} /></View>
+                <View style={{ flex: 1 }}><Button title="Saqlash" onPress={save} loading={busy} /></View>
+              </Row>
+            </View>
+          )}
+        </View>
+      </Modal>
 
-  async function openDetail(id: number) {
-    try { setDetail(await api.get(`/api/${path}/${id}`)); } catch (e: any) { Alert.alert('Xato', e.message); }
-  }
-}
-
-function DetailModal({ kind, detail, onClose, onPay }: any) {
-  const isC = kind === 'client';
-  if (!detail) return null;
-  const txns = isC ? (detail.sales || []) : (detail.purchases || []);
-  const pays = detail.payments || [];
-  return (
-    <Modal visible={!!detail} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%' }}>
-          <View style={{ padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ flex: 1 }}><T size="lg" weight="800">{detail.name}</T><T size="sm" color={colors.textMuted}>{detail.phone || ''}</T></View>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={26} color={colors.textMuted} /></TouchableOpacity>
+      {/* Yangi mijoz */}
+      <Modal visible={newOpen} animationType="slide" onRequestClose={() => setNewOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: colors.bg }}>
+          <View style={{ paddingTop: 56, paddingBottom: 10, paddingHorizontal: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Row justify="space-between"><TouchableOpacity onPress={() => setNewOpen(false)}><Ionicons name="close" size={26} color={colors.text} /></TouchableOpacity><T size="lg" weight="800">Yangi mijoz</T><View style={{ width: 26 }} /></Row>
           </View>
           <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
-            <View style={{ backgroundColor: (detail.debt > 0 ? colors.danger : colors.success) + '14', borderRadius: radii.md, padding: spacing.md, marginBottom: 16 }}>
-              <T size="xs" weight="700" color={colors.textMuted}>{isC ? 'Joriy qarz' : 'Bizning qarz'}</T>
-              <T size="xxl" weight="900" color={detail.debt > 0 ? colors.danger : colors.success}>{money(detail.debt || 0)}</T>
-            </View>
-            <T size="sm" weight="800" color={colors.textMuted} style={{ marginBottom: 8 }}>{isC ? 'SOTUVLAR' : 'XARIDLAR'}</T>
-            {txns.length === 0 && <T size="sm" color={colors.textDim} style={{ marginBottom: 10 }}>Yo'q</T>}
-            {txns.map((t: any) => (
-              <Row key={t.id} justify="space-between" style={{ paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <T size="sm" color={colors.textMuted}>№{t.id} · {new Date(t.created_at).toLocaleDateString('ru-RU')}</T>
-                <T size="sm" weight="700">{money(t.total_amount)}</T>
-              </Row>
-            ))}
-            <T size="sm" weight="800" color={colors.textMuted} style={{ marginTop: 16, marginBottom: 8 }}>TO'LOVLAR</T>
-            {pays.length === 0 && <T size="sm" color={colors.textDim}>Yo'q</T>}
-            {pays.map((p: any, i: number) => (
-              <Row key={i} justify="space-between" style={{ paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <T size="sm" color={colors.textMuted}>{new Date(p.created_at).toLocaleDateString('ru-RU')}</T>
-                <T size="sm" weight="700" color={colors.success}>{money(p.amount)}</T>
-              </Row>
-            ))}
-            <Button title={isC ? "To'lov qabul qilish" : "To'lov qilish"} icon="cash" variant="secondary" onPress={onPay} style={{ marginTop: 18 }} />
+            <Input label="Ism *" value={nf.firstName} onChangeText={(v) => setNf({ ...nf, firstName: v })} placeholder="Ism" icon="person-outline" autoCapitalize="words" />
+            <Input label="Familiya" value={nf.lastName} onChangeText={(v) => setNf({ ...nf, lastName: v })} placeholder="Familiya" icon="person-outline" autoCapitalize="words" />
+            <Input label="Telefon *" value={nf.phone} onChangeText={(v) => setNf({ ...nf, phone: v })} placeholder="+998..." icon="call-outline" keyboardType="phone-pad" />
+            <Input label="Manzil" value={nf.address} onChangeText={(v) => setNf({ ...nf, address: v })} placeholder="Manzil" icon="location-outline" autoCapitalize="sentences" />
+            <T size="sm" weight="700" color={colors.textMuted} style={{ marginVertical: 8, marginLeft: 4 }}>ILOVA LOGIN (ixtiyoriy)</T>
+            <Input label="Login" value={nf.username} onChangeText={(v) => setNf({ ...nf, username: v })} placeholder="mijoz_login" icon="at-outline" />
+            <Input label="Parol" value={nf.password} onChangeText={(v) => setNf({ ...nf, password: v })} placeholder="••••••" secure icon="lock-closed-outline" />
+            <Button title="Mijoz qo'shish" icon="checkmark-circle" onPress={createNew} loading={busy} />
           </ScrollView>
         </View>
-      </View>
-    </Modal>
-  );
-}
+      </Modal>
 
-function AddModal({ kind, visible, onClose, onDone }: any) {
-  const isC = kind === 'client';
-  const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [addr, setAddr] = useState(''); const [busy, setBusy] = useState(false);
-  React.useEffect(() => { if (visible) { setName(''); setPhone(''); setAddr(''); } }, [visible]);
-  const submit = async () => {
-    if (!name.trim()) { Alert.alert('Nom', 'Nomni kiriting'); return; }
-    setBusy(true);
-    try { await api.post(`/api/${isC ? 'clients' : 'suppliers'}`, { name: name.trim(), phone, address: addr }); onDone(); }
-    catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
-  };
-  const inp = { backgroundColor: colors.bgInput, borderRadius: radii.md, borderWidth: 1.4, borderColor: colors.border, padding: 14, color: colors.text, fontWeight: '700' as const, fontSize: fontSize.md, marginBottom: 12 };
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg }}>
-          <Row justify="space-between" style={{ marginBottom: 16 }}><T size="lg" weight="800">Yangi {isC ? 'mijoz' : 'yetkazuvchi'}</T><TouchableOpacity onPress={onClose}><Ionicons name="close" size={26} color={colors.textMuted} /></TouchableOpacity></Row>
-          <TextInput value={name} onChangeText={setName} placeholder="Nomi" placeholderTextColor={colors.textDim} style={inp} />
-          <TextInput value={phone} onChangeText={setPhone} placeholder="Telefon" placeholderTextColor={colors.textDim} keyboardType="phone-pad" style={inp} />
-          {isC && <TextInput value={addr} onChangeText={setAddr} placeholder="Manzil" placeholderTextColor={colors.textDim} style={inp} />}
-          <Button title="Saqlash" icon="checkmark" loading={busy} onPress={submit} style={{ marginTop: 4 }} />
+      {/* Qarz to'lash */}
+      <Modal visible={!!payClient} transparent animationType="fade" onRequestClose={() => setPayClient(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.xl }}>
+          {payClient && (
+            <View style={{ backgroundColor: colors.bg, borderRadius: radii.xl, padding: spacing.xl }}>
+              <T size="lg" weight="800">{payClient.first_name} {payClient.last_name}</T>
+              <T size="sm" color={colors.textMuted} style={{ marginBottom: spacing.md }}>Joriy qarz: {money(payClient.debt)}</T>
+              <Input money label="To'lov summasi (so'm)" value={payAmount} onChangeText={setPayAmount} placeholder="0" icon="cash-outline" />
+              <TouchableOpacity onPress={() => setPayAmount(String(Math.round(payClient.debt)))}><T size="sm" weight="700" color={colors.primary} style={{ marginBottom: 8 }}>To'liq to'lash: {money(payClient.debt)}</T></TouchableOpacity>
+              {parseFloat(payAmount) > 0 ? <T size="sm" color={colors.textMuted} style={{ marginBottom: spacing.md }}>To'lovdan keyin qoladi: <T size="sm" weight="800" color={colors.text}>{money(Math.max(0, payClient.debt - parseFloat(payAmount)))}</T></T> : <View style={{ marginBottom: spacing.md }} />}
+              <Row gap={spacing.md}>
+                <View style={{ flex: 1 }}><Button title="Bekor" variant="secondary" onPress={() => setPayClient(null)} /></View>
+                <View style={{ flex: 1 }}><Button title="Qabul qilish" onPress={doPay} loading={busy} /></View>
+              </Row>
+            </View>
+          )}
         </View>
-      </View>
-    </Modal>
-  );
-}
-
-function PayModal({ kind, party, onClose, onDone }: any) {
-  const isC = kind === 'client';
-  const [amt, setAmt] = useState(''); const [busy, setBusy] = useState(false);
-  React.useEffect(() => { if (party) setAmt(''); }, [party]);
-  if (!party) return null;
-  const submit = async () => {
-    const v = parseFloat(amt) || 0; if (v <= 0) { Alert.alert('Summa', 'Summani kiriting'); return; }
-    setBusy(true);
-    try { await api.post(`/api/${isC ? 'clients' : 'suppliers'}/${party.id}/payment`, { amount: v }); onDone(); }
-    catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
-  };
-  return (
-    <Modal visible={!!party} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg }}>
-          <Row justify="space-between" style={{ marginBottom: 6 }}><T size="lg" weight="800">To'lov</T><TouchableOpacity onPress={onClose}><Ionicons name="close" size={26} color={colors.textMuted} /></TouchableOpacity></Row>
-          <T size="sm" color={colors.textMuted} style={{ marginBottom: 14 }}>{party.name}</T>
-          <TextInput value={amt.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} onChangeText={(t) => setAmt(t.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textDim} autoFocus
-            style={{ backgroundColor: colors.bgInput, borderRadius: radii.md, borderWidth: 1.4, borderColor: colors.border, padding: 16, color: colors.text, fontWeight: '900', fontSize: fontSize.xl, textAlign: 'center', marginBottom: 16 }} />
-          <Button title="Saqlash" icon="checkmark" variant="secondary" loading={busy} onPress={submit} />
-        </View>
-      </View>
-    </Modal>
+      </Modal>
+    </View>
   );
 }

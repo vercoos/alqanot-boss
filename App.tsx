@@ -8,29 +8,30 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
+import * as Location from 'expo-location';
 import { useAuth } from './src/store';
 import { useTheme, colors } from './src/theme';
-import { loadApiBase } from './src/api';
-import { connectSocket, disconnectSocket, startTracking, stopTracking } from './src/socket';
-import { checkUpdate } from './src/update';
-import Login from './src/screens/Login';
-import Dashboard from './src/screens/Dashboard';
-import Sale from './src/screens/Sale';
-import Harita from './src/screens/Harita';
-import Tasdiqlash from './src/screens/Tasdiqlash';
-import More from './src/screens/More';
-import Clients from './src/screens/Clients';
-import Suppliers from './src/screens/Suppliers';
-import Warehouse from './src/screens/Warehouse';
-import Purchases from './src/screens/Purchases';
-import Expenses from './src/screens/Expenses';
-import Qaytarish from './src/screens/Qaytarish';
-import Report from './src/screens/Report';
-import Tolovlar from './src/screens/Tolovlar';
-import Qarzlar from './src/screens/Qarzlar';
-import Yuk from './src/screens/Yuk';
-import YukDetail from './src/screens/YukDetail';
+import { connectSocket, disconnectSocket } from './src/socket';
+import HaritaScreen from './src/screens/Harita';
+import LoginScreen from './src/screens/Login';
+import LockScreen from './src/screens/Lock';
+import DashboardScreen from './src/screens/Dashboard';
+import SaleScreen from './src/screens/Sale';
+import ClientsScreen from './src/screens/Clients';
+import ProfileScreen from './src/screens/Profile';
+import ReportScreen from './src/screens/Report';
+import SuppliersScreen from './src/screens/Suppliers';
+import WarehouseScreen from './src/screens/Warehouse';
+import ExpensesScreen from './src/screens/Expenses';
+import BuyurtmalarScreen from './src/screens/Buyurtmalar';
+import ChekScreen from './src/screens/Chek';
+import MijozTarixScreen from './src/screens/MijozTarix';
+import QaytarishScreen from './src/screens/Qaytarish';
+import TarixScreen from './src/screens/Tarix';
+import XaridTarixScreen from './src/screens/XaridTarix';
+import YetkazuvchiTarixScreen from './src/screens/YetkazuvchiTarix';
 
+// Startupda kutilmagan render xatosi bo'lsa — bo'sh/oq ekran o'rniga xatoni ko'rsatadi
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state: { error: Error | null } = { error: null };
   static getDerivedStateFromError(error: Error) { return { error }; }
@@ -59,11 +60,11 @@ const ICONS: Record<string, [string, string]> = {
   Home: ['home', 'home-outline'],
   Sotuv: ['cart', 'cart-outline'],
   Xarita: ['map', 'map-outline'],
-  Tasdiqlash: ['checkmark-done', 'checkmark-done-outline'],
+  Mijozlar: ['people', 'people-outline'],
   Boshqa: ['grid', 'grid-outline'],
 };
 
-function BossTabs() {
+function MainTabs() {
   return (
     <Tab.Navigator screenOptions={({ route }) => ({
       headerShown: false,
@@ -75,82 +76,74 @@ function BossTabs() {
         return <Ionicons name={(focused ? on : off) as any} size={size - 1} color={color} />;
       },
     })}>
-      <Tab.Screen name="Home" component={Dashboard} options={{ title: 'Asosiy' }} />
-      <Tab.Screen name="Sotuv" component={Sale} />
-      <Tab.Screen name="Xarita" component={Harita} />
-      <Tab.Screen name="Tasdiqlash" component={Tasdiqlash} />
-      <Tab.Screen name="Boshqa" component={More} />
+      <Tab.Screen name="Home" component={DashboardScreen} options={{ title: 'Asosiy' }} />
+      <Tab.Screen name="Sotuv" component={SaleScreen} options={{ title: 'Sotuv' }} />
+      <Tab.Screen name="Xarita" component={HaritaScreen} options={{ title: 'Xarita' }} />
+      <Tab.Screen name="Mijozlar" component={ClientsScreen} options={{ title: 'Mijozlar' }} />
+      <Tab.Screen name="Boshqa" component={ProfileScreen} options={{ title: 'Boshqa' }} />
     </Tab.Navigator>
   );
 }
 
-function BossRoot() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Main" component={BossTabs} />
-      <Stack.Screen name="Mijozlar" component={Clients} />
-      <Stack.Screen name="Yetkazuvchilar" component={Suppliers} />
-      <Stack.Screen name="Ombor" component={Warehouse} />
-      <Stack.Screen name="Xarid" component={Purchases} />
-      <Stack.Screen name="Xarajatlar" component={Expenses} />
-      <Stack.Screen name="Qaytarish" component={Qaytarish} />
-      <Stack.Screen name="Hisobot" component={Report} />
-      <Stack.Screen name="Tolovlar" component={Tolovlar} />
-      <Stack.Screen name="Qarzlar" component={Qarzlar} />
-    </Stack.Navigator>
-  );
-}
+function AppRoot() {
+  const hydrated = useAuth((s) => s.hydrated);
+  const hydrate = useAuth((s) => s.hydrate);
+  const user = useAuth((s) => s.user);
+  const locked = useAuth((s) => s.locked);
+  const themeReady = useTheme((s) => s.ready);
+  const themeHydrate = useTheme((s) => s.hydrate);
+  const mode = useTheme((s) => s.mode);
+  const resolved = useTheme((s) => s.resolved);
 
-function KuryerStack() {
+  useEffect(() => { Promise.resolve(hydrate()).catch(() => {}); Promise.resolve(themeHydrate()).catch(() => {}); }, [hydrate, themeHydrate]);
+  // Kirganda: GPS ruxsatini so'raymiz (xarita "Siz") + jonli socketga ulanamiz (kuryerlar/tasdiqlash)
+  useEffect(() => {
+    if (user && !locked) {
+      Location.requestForegroundPermissionsAsync().catch(() => {});
+      connectSocket();
+    } else if (!user) {
+      disconnectSocket();
+    }
+  }, [user, locked]);
+  if (!hydrated || !themeReady) return <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.primary} size="large" /></View>;
+
+  const navTheme = { ...(resolved === 'dark' ? DarkTheme : DefaultTheme), colors: { ...(resolved === 'dark' ? DarkTheme.colors : DefaultTheme.colors), background: colors.bg, card: colors.bgElevated, text: colors.text, primary: colors.primary, border: colors.border } };
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Yuk" component={Yuk} />
-      <Stack.Screen name="YukDetail" component={YukDetail} />
-    </Stack.Navigator>
+    <SafeAreaProvider>
+      <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
+      <NavigationContainer key={`${mode}-${resolved}`} theme={navTheme}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!user ? (
+            <Stack.Screen name="Login" component={LoginScreen} />
+          ) : locked ? (
+            <Stack.Screen name="Lock" component={LockScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="Hisobot" component={ReportScreen} />
+              <Stack.Screen name="Yetkazuvchilar" component={SuppliersScreen} />
+              <Stack.Screen name="Ombor" component={WarehouseScreen} />
+              <Stack.Screen name="Xarajatlar" component={ExpensesScreen} />
+              <Stack.Screen name="Buyurtmalar" component={BuyurtmalarScreen} />
+              <Stack.Screen name="Chek" component={ChekScreen} />
+              <Stack.Screen name="MijozTarix" component={MijozTarixScreen} />
+              <Stack.Screen name="Qaytarish" component={QaytarishScreen} />
+              <Stack.Screen name="Tarix" component={TarixScreen} />
+              <Stack.Screen name="XaridTarix" component={XaridTarixScreen} />
+              <Stack.Screen name="YetkazuvchiTarix" component={YetkazuvchiTarixScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 
 export default function App() {
-  const { hydrated, user, hydrate } = useAuth();
-  const { ready, resolved, hydrate: hydrateTheme } = useTheme();
-
-  useEffect(() => { (async () => { await loadApiBase(); hydrateTheme(); hydrate(); })(); }, []);
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'kuryer') startTracking();
-      else connectSocket();
-      checkUpdate(true);
-    } else {
-      stopTracking(); disconnectSocket();
-    }
-  }, [user]);
-
-  if (!hydrated || !ready) {
-    return <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.primary} /></View>;
-  }
-
-  const navTheme = resolved === 'dark'
-    ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bgElevated, text: colors.text, primary: colors.primary, border: colors.border } }
-    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.bgElevated, text: colors.text, primary: colors.primary, border: colors.border } };
-
-  const isKuryer = user?.role === 'kuryer';
-
   return (
     <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
-        <NavigationContainer key={resolved} theme={navTheme}>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {!user ? (
-              <Stack.Screen name="Login" component={Login} />
-            ) : isKuryer ? (
-              <Stack.Screen name="Kuryer" component={KuryerStack} />
-            ) : (
-              <Stack.Screen name="Boss" component={BossRoot} />
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <AppRoot />
     </ErrorBoundary>
   );
 }

@@ -94,7 +94,7 @@ export const useTheme = create<ThemeState>((set, get) => ({
   async hydrate() {
     let mode: ThemeMode = 'auto';
     try {
-      const m = await AsyncStorage.getItem('alqanot_theme');
+      const m = await AsyncStorage.getItem('sc_theme');
       if (m === 'light' || m === 'dark' || m === 'auto') mode = m;
     } catch {}
     const resolved = apply(mode);
@@ -103,6 +103,6 @@ export const useTheme = create<ThemeState>((set, get) => ({
       if (get().mode === 'auto') set({ resolved: apply('auto') });
     });
   },
-  setMode(m) { const resolved = apply(m); AsyncStorage.setItem('alqanot_theme', m).catch(() => {}); set({ mode: m, resolved }); },
+  setMode(m) { const resolved = apply(m); AsyncStorage.setItem('sc_theme', m).catch(() => {}); set({ mode: m, resolved }); },
   toggle() { const o: ThemeMode[] = ['auto', 'light', 'dark']; get().setMode(o[(o.indexOf(get().mode) + 1) % 3]); },
 }));

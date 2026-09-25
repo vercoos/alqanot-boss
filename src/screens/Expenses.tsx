@@ -1,67 +1,121 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, TextInput, TouchableOpacity, Modal, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { api } from '../api';
-import { Header, T, money, Button, Row } from '../components/ui';
+import { Card, Row, T, Button, Input, money, Header } from '../components/ui';
 import { colors, spacing, radii, fontSize } from '../theme';
 
 export default function Expenses({ navigation }: any) {
-  const [rows, setRows] = useState<any[]>([]);
+  const [list, setList] = useState<any[]>([]);
+  const [types, setTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [typeId, setTypeId] = useState<number | null>(null);
+  const [amount, setAmount] = useState('');
+  const [newTypeOpen, setNewTypeOpen] = useState(false);
+  const [newType, setNewType] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [dl, setDl] = useState(false);
+
+  const downloadExcel = async () => {
+    setDl(true);
+    try {
+      const r = await api.get('/boss/expenses/excel');
+      const uri = (FileSystem.cacheDirectory || FileSystem.documentDirectory || '') + (r.filename || 'xarajatlar.xlsx');
+      await FileSystem.writeAsStringAsync(uri, r.base64, { encoding: FileSystem.EncodingType.Base64 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', dialogTitle: 'Xarajatlar (Excel)', UTI: 'org.openxmlformats.spreadsheetml.sheet' });
+      } else { Alert.alert('Saqlandi', uri); }
+    } catch (e: any) { Alert.alert('Xatolik', e?.message || 'Excel yuklab bo\'lmadi'); } finally { setDl(false); }
+  };
 
   const load = useCallback(async () => {
-    try { setRows((await api.get('/api/expenses')) || []); } catch {} finally { setLoading(false); setRefreshing(false); }
+    try { const [e, t] = await Promise.all([api.get('/boss/expenses'), api.get('/boss/expense-types')]); setList(e || []); setTypes(t || []); }
+    catch {} finally { setLoading(false); setRefreshing(false); }
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  const total = rows.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+  const addExpense = async () => {
+    if (!typeId) { Alert.alert('Turi', 'Harajat turini tanlang'); return; }
+    if (!(parseFloat(amount) > 0)) { Alert.alert('Summa', 'Summani kiriting'); return; }
+    setBusy(true);
+    try { await api.post('/boss/expense', { typeId, amount: parseFloat(amount) }); setAddOpen(false); setAmount(''); setTypeId(null); Alert.alert('Tayyor', 'Harajat kiritildi'); load(); }
+    catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
+  };
+  const addType = async () => {
+    if (!newType.trim()) { Alert.alert('Nom', 'Nom kiriting'); return; }
+    setBusy(true);
+    try { await api.post('/boss/expense-type', { name: newType.trim() }); setNewType(''); setNewTypeOpen(false); Alert.alert('Tayyor', 'Tur qo\'shildi'); load(); }
+    catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Header title="Xarajatlar" subtitle={`Jami ${money(total)}`} onBack={() => navigation.goBack()} />
-      {loading ? <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 40 }} /> : (
-        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 100 }}
+      <Header title="Harajatlar" subtitle="Oylik, yoqilg'i, elektr va boshqalar" onBack={() => navigation.goBack()}
+        right={<TouchableOpacity onPress={() => setAddOpen(true)} style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="add" size={24} color="#fff" /></TouchableOpacity>} />
+      {loading ? <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 60 }} /> : (
+        <ScrollView contentContainerStyle={{ padding: spacing.lg }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.primary} />}>
-          {rows.map((e) => (
-            <Row key={e.id} justify="space-between" style={{ backgroundColor: colors.bgCard, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginBottom: 8 }}>
-              <View style={{ flex: 1 }}><T weight="700">{e.note || 'Xarajat'}</T><T size="xs" color={colors.textMuted}>{new Date(e.created_at).toLocaleDateString('ru-RU')}</T></View>
-              <T weight="900" color={colors.danger}>−{money(e.amount)}</T>
-            </Row>
+          <Button title="Xarajat qo'shish" icon="add-circle-outline" onPress={() => setAddOpen(true)} style={{ marginBottom: spacing.sm }} />
+          {list.length > 0 && <Button title={dl ? 'Tayyorlanmoqda...' : 'Excel yuklab olish'} variant="secondary" icon="download-outline" onPress={downloadExcel} loading={dl} style={{ marginBottom: spacing.md }} />}
+          {list.length === 0 && <View style={{ alignItems: 'center', paddingVertical: 50 }}><Ionicons name="wallet-outline" size={54} color={colors.textDim} /><T size="md" color={colors.textMuted} weight="600" style={{ marginTop: 12 }}>Hali xarajat yo'q</T></View>}
+          {list.map((e) => (
+            <Card key={e.id} style={{ marginBottom: 8 }}>
+              <Row justify="space-between">
+                <View style={{ flex: 1 }}><T size="md" weight="700">{e.type_name || 'Harajat'}</T><T size="xs" color={colors.textDim}>{new Date(e.created_at).toLocaleDateString('uz')}</T></View>
+                <T size="md" weight="800" color={colors.danger}>-{money(e.amount)}</T>
+              </Row>
+            </Card>
           ))}
-          {rows.length === 0 && <T color={colors.textMuted} style={{ textAlign: 'center', marginTop: 30 }}>Xarajat yo'q</T>}
         </ScrollView>
       )}
-      <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.9}
-        style={{ position: 'absolute', right: 18, bottom: 22, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', elevation: 7 }}>
-        <Ionicons name="add" size={26} color="#fff" />
-      </TouchableOpacity>
-      <AddExpense visible={open} onClose={() => setOpen(false)} onDone={() => { setOpen(false); load(); }} />
-    </View>
-  );
-}
 
-function AddExpense({ visible, onClose, onDone }: any) {
-  const [amt, setAmt] = useState(''); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
-  React.useEffect(() => { if (visible) { setAmt(''); setNote(''); } }, [visible]);
-  const submit = async () => {
-    const v = parseFloat(amt) || 0; if (v <= 0) { Alert.alert('Summa', 'Summani kiriting'); return; }
-    setBusy(true);
-    try { await api.post('/api/expenses', { amount: v, note }); onDone(); }
-    catch (e: any) { Alert.alert('Xato', e.message); } finally { setBusy(false); }
-  };
-  const inp = { backgroundColor: colors.bgInput, borderRadius: radii.md, borderWidth: 1.4, borderColor: colors.border, padding: 14, color: colors.text, fontWeight: '700' as const, fontSize: fontSize.md, marginBottom: 12 };
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg }}>
-          <Row justify="space-between" style={{ marginBottom: 16 }}><T size="lg" weight="800">Yangi xarajat</T><TouchableOpacity onPress={onClose}><Ionicons name="close" size={26} color={colors.textMuted} /></TouchableOpacity></Row>
-          <TextInput value={amt.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} onChangeText={(t) => setAmt(t.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Summa" placeholderTextColor={colors.textDim} style={inp} />
-          <TextInput value={note} onChangeText={setNote} placeholder="Izoh (nima uchun)" placeholderTextColor={colors.textDim} style={inp} />
-          <Button title="Saqlash" icon="checkmark" loading={busy} onPress={submit} style={{ marginTop: 4 }} />
+      {/* Harajat qo'shish */}
+      <Modal visible={addOpen} transparent animationType="fade" onRequestClose={() => setAddOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.xl }}>
+          <View style={{ backgroundColor: colors.bg, borderRadius: radii.xl, padding: spacing.xl }}>
+            <Row justify="space-between" style={{ marginBottom: spacing.md }}>
+              <T size="lg" weight="800">Harajat qo'shish</T>
+              <TouchableOpacity onPress={() => { setAddOpen(false); setNewTypeOpen(true); }}><Row gap={4}><Ionicons name="add-circle" size={18} color={colors.primary} /><T size="sm" weight="700" color={colors.primary}>Yangi tur</T></Row></TouchableOpacity>
+            </Row>
+            <T size="sm" weight="700" color={colors.textMuted} style={{ marginBottom: 8 }}>Turi</T>
+            <View style={{ maxHeight: 180 }}>
+              <ScrollView>
+                <Row gap={8} style={{ flexWrap: 'wrap', marginBottom: spacing.md }}>
+                  {types.map((t) => (
+                    <TouchableOpacity key={t.id} onPress={() => setTypeId(t.id)} style={{ paddingHorizontal: 12, paddingVertical: 9, borderRadius: radii.md, backgroundColor: typeId === t.id ? colors.primary : colors.bgInput, borderWidth: 1, borderColor: typeId === t.id ? colors.primary : colors.border }}>
+                      <T size="sm" weight="700" color={typeId === t.id ? '#fff' : colors.text}>{t.name}</T>
+                    </TouchableOpacity>
+                  ))}
+                </Row>
+              </ScrollView>
+            </View>
+            <Input money label="Summa (so'm)" value={amount} onChangeText={setAmount} placeholder="0" icon="cash-outline" />
+            <Row gap={spacing.md}>
+              <View style={{ flex: 1 }}><Button title="Bekor" variant="secondary" onPress={() => setAddOpen(false)} /></View>
+              <View style={{ flex: 1 }}><Button title="Kiritish" onPress={addExpense} loading={busy} /></View>
+            </Row>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      {/* Yangi tur */}
+      <Modal visible={newTypeOpen} transparent animationType="fade" onRequestClose={() => setNewTypeOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.xl }}>
+          <View style={{ backgroundColor: colors.bg, borderRadius: radii.xl, padding: spacing.xl }}>
+            <T size="lg" weight="800" style={{ marginBottom: spacing.md }}>Yangi harajat turi</T>
+            <Input label="Nomi" value={newType} onChangeText={setNewType} placeholder="Masalan: Reklama" icon="pricetag-outline" autoCapitalize="sentences" />
+            <Row gap={spacing.md}>
+              <View style={{ flex: 1 }}><Button title="Bekor" variant="secondary" onPress={() => { setNewTypeOpen(false); setAddOpen(true); }} /></View>
+              <View style={{ flex: 1 }}><Button title="Qo'shish" onPress={addType} loading={busy} /></View>
+            </Row>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }

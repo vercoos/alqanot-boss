@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ScrollView, View, RefreshControl, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import { ScrollView, View, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -16,12 +16,12 @@ export default function Dashboard({ navigation }: any) {
   const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try { setD(await api.get('/api/dashboard')); setErr(null); }
+    try { setD(await api.get('/boss/dashboard')); setErr(null); }
     catch (e: any) { setErr(e?.message || 'Ma\'lumot yuklanmadi'); }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
   useFocusEffect(useCallback(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, [load]));
-  useEffect(() => { const t = setTimeout(() => checkUpdate(true), 2500); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(() => checkUpdate('bos', true), 2500); return () => clearTimeout(t); }, []);
 
   const greeting = (() => { const h = new Date().getHours(); return h < 6 ? 'Xayrli tun' : h < 12 ? 'Xayrli tong' : h < 18 ? 'Xayrli kun' : 'Xayrli kech'; })();
 
@@ -29,12 +29,9 @@ export default function Dashboard({ navigation }: any) {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: 34 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.primary} />}>
 
-      <View style={{ paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <T size="sm" color={colors.textMuted} weight="600">{greeting}</T>
-          <T size="xxl" weight="800" numberOfLines={1} style={{ marginTop: 2 }}>{user?.full_name || user?.email || 'Boshliq'}</T>
-        </View>
-        <Image source={require('../../assets/icon.png')} style={{ width: 44, height: 44, borderRadius: 12 }} resizeMode="contain" />
+      <View style={{ paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <T size="sm" color={colors.textMuted} weight="600">{greeting}</T>
+        <T size="xxl" weight="800" numberOfLines={1} style={{ marginTop: 2 }}>{user?.name || user?.email || 'Boshliq'}</T>
       </View>
 
       <View style={{ padding: spacing.lg }}>
@@ -54,15 +51,6 @@ export default function Dashboard({ navigation }: any) {
               <T size="hero" weight="900" numberOfLines={1} style={{ marginTop: 8 }}>{money(d?.balance || 0)}</T>
             </View>
 
-            {d?.pending > 0 && (
-              <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Tasdiqlash')}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.warning + '16', borderRadius: radii.md, borderWidth: 1, borderColor: colors.warning + '55', padding: spacing.md, marginTop: spacing.md }}>
-                <Ionicons name="alert-circle" size={22} color={colors.warning} />
-                <T size="sm" weight="800" style={{ flex: 1 }} color={colors.warning}>{d.pending} ta narx tasdiqlashni kutmoqda</T>
-                <Ionicons name="chevron-forward" size={18} color={colors.warning} />
-              </TouchableOpacity>
-            )}
-
             <Row gap={spacing.sm} style={{ marginTop: spacing.md }} align="stretch">
               <CountTile iconName="cube-outline" label="Mahsulotlar" val={d?.products} />
               <CountTile iconName="car-outline" label="Yetkazuvchilar" val={d?.suppliers} />
@@ -70,18 +58,18 @@ export default function Dashboard({ navigation }: any) {
             </Row>
 
             <Section>QARZLAR VA SOTUV</Section>
-            <MoneyRow icon="arrow-down-circle-outline" label="Mijoz qarzlari" val={money(d?.client_debt || 0)} tint={colors.danger} />
-            <MoneyRow icon="arrow-up-circle-outline" label="Yetkazuvchi qarzlari" val={money(d?.supplier_debt || 0)} tint={colors.warning} />
-            <MoneyRow icon="trending-up-outline" label={`Bugungi sotuv · ${d?.today_count || 0} ta`} val={money(d?.today_sales || 0)} tint={colors.success} />
+            <MoneyRow icon="arrow-down-circle-outline" label="Mijoz qarzlari" val={money(d?.clientDebt || 0)} tint={colors.danger} />
+            <MoneyRow icon="arrow-up-circle-outline" label="Yetkazuvchi qarzlari" val={money(d?.supplierDebt || 0)} tint={colors.warning} />
+            <MoneyRow icon="trending-up-outline" label={`Bugungi sotuv · ${d?.todayCount || 0} ta`} val={money(d?.todaySales || 0)} tint={colors.success} />
 
             <Section>TEZKOR AMALLAR</Section>
             <Row gap={spacing.md}>
-              <Quick icon="cart-outline" label="Yangi sotuv" onPress={() => navigation.navigate('Sotuv')} />
-              <Quick icon="map-outline" label="Xarita" onPress={() => navigation.navigate('Xarita')} />
+              <Quick icon="time-outline" label="Tarix" onPress={() => navigation.navigate('Tarix')} />
+              <Quick icon="bar-chart-outline" label="Hisobot" onPress={() => navigation.navigate('Hisobot')} />
             </Row>
             <Row gap={spacing.md} style={{ marginTop: spacing.md }}>
-              <Quick icon="cube-outline" label="Ombor" onPress={() => navigation.navigate('Ombor')} />
-              <Quick icon="bar-chart-outline" label="Hisobot" onPress={() => navigation.navigate('Hisobot')} />
+              <Quick icon="return-down-back-outline" label="Qaytarish" onPress={() => navigation.navigate('Qaytarish')} />
+              <Quick icon="cube-outline" label="Yetkazuvchilar" onPress={() => navigation.navigate('Yetkazuvchilar')} />
             </Row>
           </>
         )}

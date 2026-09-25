@@ -33,8 +33,8 @@ export default function Harita() {
   const loadAll = useCallback(async () => {
     try {
       const [rows, omb] = await Promise.all([
-        api.get('/api/couriers/locations').catch(() => []),
-        api.get('/api/settings/ombor').catch(() => null),
+        api.rootGet('/api/couriers/locations').catch(() => []),
+        api.rootGet('/api/settings/ombor').catch(() => null),
       ]);
       setOmbor(omb);
       if (ready.current) {
@@ -77,7 +77,7 @@ export default function Harita() {
 
   const saveOmbor = async (lat: number, lng: number) => {
     try {
-      const o = await api.post('/api/settings/ombor', { lat, lng, name: 'Ombor' });
+      const o = await api.rootPost('/api/settings/ombor', { lat, lng, name: 'Ombor' });
       setOmbor(o); setPicking(false);
       inject(`window.setOmbor(${JSON.stringify(o)})`);
       Alert.alert('Saqlandi', 'Ombor joylashuvi belgilandi');

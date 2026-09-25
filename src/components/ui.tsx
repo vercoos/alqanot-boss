@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ViewStyle, TextStyle, Pressable, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ViewStyle, TextStyle, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing, fontSize, shadow } from '../theme';
@@ -127,7 +127,7 @@ export function T({ children, size = 'md', weight = '400', color, style, numberO
   return <Text numberOfLines={numberOfLines} style={[{ color: color || colors.text, fontSize: (fontSize as any)[size], fontWeight: weight }, style]}>{children}</Text>;
 }
 
-// Badge — nuqtali status yorlig'i (AL QANOT ekranlari uchun)
+// Badge — nuqtali status yorlig'i (xarita "Online" uchun)
 export function Badge({ label, color = colors.primary }: { label: string; color?: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: color + '1E' }}>
@@ -135,17 +135,4 @@ export function Badge({ label, color = colors.primary }: { label: string; color?
       <Text style={{ color, fontSize: fontSize.xs, fontWeight: '800' }}>{label}</Text>
     </View>
   );
-}
-
-// FadeIn — yumshoq paydo bo'lish
-export function FadeIn({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: ViewStyle }) {
-  const op = React.useRef(new Animated.Value(0)).current;
-  const ty = React.useRef(new Animated.Value(10)).current;
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(op, { toValue: 1, duration: 320, delay, useNativeDriver: true }),
-      Animated.timing(ty, { toValue: 0, duration: 320, delay, useNativeDriver: true }),
-    ]).start();
-  }, []);
-  return <Animated.View style={[{ opacity: op, transform: [{ translateY: ty }] }, style as any]}>{children}</Animated.View>;
 }
