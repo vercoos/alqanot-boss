@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const extra: any = Constants.expoConfig?.extra || {};
 // Server manzili app.json'дан (qat'iy). Eski saqlangan qiymat tozalanadi.
 const base: string = extra.apiBase || 'http://72.60.17.70:6010';
-const K_TOKEN = 'alqanot-boss-token';
+const K_TOKEN = 'alqanot-token';
 const K_API = 'alqanot_api';
 
 export function getApiBase() { return base; }
@@ -43,8 +43,9 @@ export const api = {
   post: async <T = any>(p: string, b?: any) => (await call(p, 'POST', b)).data as T,
 };
 
-export async function signIn(phone: string, password: string) {
-  const json = await call('/api/auth/login', 'POST', { phone, password }, false);
+// Email YOKI telefon + parol bilan kirish
+export async function signIn(login: string, password: string) {
+  const json = await call('/api/auth/login', 'POST', { email: login, password }, false);
   const { token, user } = json.data || {};
   await store.setToken(token);
   return user;

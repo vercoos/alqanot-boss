@@ -4,8 +4,8 @@ import { WebView } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
-import { getSocket } from '../socket';
-import { T, Badge } from '../components/ui';
+import { connectSocket, getSocket } from '../socket';
+import { Header, T, Badge } from '../components/ui';
 import { MAP_HTML } from '../mapHtml';
 import { colors, spacing, radii } from '../theme';
 
@@ -44,15 +44,20 @@ export default function Harita() {
     } catch {}
   }, []);
 
+  // Socket — o'zi ulanadi (idempotent), keyin tinglaydi. "Ulanmoqda" osilib qolmaydi.
   useEffect(() => {
-    const s = getSocket();
-    if (!s) return;
-    const onLoc = (c: any) => { if (ready.current) inject(`window.updateCourier(${JSON.stringify(c)})`); };
-    const onConn = () => setOnline(true);
-    const onDisc = () => setOnline(false);
-    setOnline(s.connected);
-    s.on('courier:loc', onLoc); s.on('connect', onConn); s.on('disconnect', onDisc);
-    return () => { s.off('courier:loc', onLoc); s.off('connect', onConn); s.off('disconnect', onDisc); };
+    let s: any = null; let cleanup = () => {};
+    (async () => {
+      s = await connectSocket();
+      if (!s) return;
+      const onLoc = (c: any) => { if (ready.current) inject(`window.updateCourier(${JSON.stringify(c)})`); };
+      const onConn = () => setOnline(true);
+      const onDisc = () => setOnline(false);
+      setOnline(!!s.connected);
+      s.on('courier:loc', onLoc); s.on('connect', onConn); s.on('disconnect', onDisc);
+      cleanup = () => { s.off('courier:loc', onLoc); s.off('connect', onConn); s.off('disconnect', onDisc); };
+    })();
+    return () => cleanup();
   }, []);
 
   useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
@@ -83,46 +88,41 @@ export default function Harita() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ paddingTop: 54, paddingBottom: 12, paddingHorizontal: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ flex: 1 }}>
-          <T size="xl" weight="900">Xarita</T>
-          <T size="xs" color={colors.textMuted} weight="600">{etas.length} kuryer · {ombor ? 'ombor belgilangan' : 'ombor belgilanmagan'}</T>
-        </View>
-        <Badge label={online ? 'Online' : 'Ulanmoqda…'} color={online ? colors.success : colors.warning} />
-      </View>
+      <Header title="Xarita" subtitle={`${etas.length} kuryer · ${ombor ? 'ombor belgilangan' : 'ombor belgilanmagan'}`}
+        right={<Badge label={online ? 'Online' : 'Ulanmoqda…'} color={online ? colors.success : colors.warning} />} />
 
       <View style={{ flex: 1 }}>
         <WebView
           ref={web} originWhitelist={['*']} source={{ html: MAP_HTML }} onMessage={onMessage}
-          javaScriptEnabled domStorageEnabled startInLoadingState
+          javaScriptEnabled domStorageEnabled geolocationEnabled startInLoadingState
+          onGeolocationPermissionsShowPrompt={(_o: any, cb: any) => cb && cb(true, true)}
           renderLoading={() => <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}><ActivityIndicator size="large" color={colors.primary} /></View>}
           style={{ flex: 1, backgroundColor: colors.bg }}
         />
 
-        {/* Ombor belgilash tugmasi / rejim paneli */}
         {picking ? (
           <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity onPress={cancelPick} style={{ flex: 1, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 14, alignItems: 'center' }}>
               <T weight="800" color={colors.textMuted}>Bekor</T>
             </TouchableOpacity>
-            <TouchableOpacity onPress={confirmPick} style={{ flex: 2, backgroundColor: colors.primary, borderRadius: radii.md, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+            <TouchableOpacity onPress={confirmPick} style={{ flex: 2, backgroundColor: colors.success, borderRadius: radii.md, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
               <Ionicons name="checkmark" size={18} color="#fff" />
               <T weight="800" color="#fff">Shu yerni ombor qilish</T>
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity onPress={startPick} style={{ position: 'absolute', top: 12, left: 12, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
-            <Ionicons name="location" size={16} color={colors.primary} />
-            <T size="sm" weight="800" color={colors.primary}>{ombor ? "Omborni o'zgartirish" : 'Omborni belgilash'}</T>
+          <TouchableOpacity onPress={startPick} style={{ position: 'absolute', top: 12, left: 12, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <Ionicons name="business" size={16} color={colors.success} />
+            <T size="sm" weight="800" color={colors.success}>{ombor ? "Omborni o'zgartirish" : 'Omborni belgilash'}</T>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Pastki kuryer ro'yxati — ETA bilan */}
+      {/* Pastki kuryer ro'yxati — omborga yetib kelish */}
       <View style={{ backgroundColor: colors.bgElevated, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, paddingBottom: 4, maxHeight: 210 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, marginBottom: 6 }}>
           <Ionicons name="navigate" size={15} color={colors.textMuted} />
-          <T size="xs" weight="800" color={colors.textMuted} style={{ marginLeft: 6 }}>KURYERLAR · OMBORGA YETIB KELISH</T>
+          <T size="xs" weight="800" color={colors.textMuted} style={{ marginLeft: 6, letterSpacing: 0.6 }}>KURYERLAR · OMBORGA YETIB KELISH</T>
         </View>
         {etas.length === 0 ? (
           <View style={{ paddingVertical: 22, alignItems: 'center' }}>
@@ -146,7 +146,7 @@ export default function Harita() {
                     <T size="xs" color={colors.textMuted} weight="600">{c.km?.toFixed(1)} km</T>
                   </View>
                 ) : (
-                  <T size="xs" color={colors.textDim} weight="600">{ombor ? '—' : 'ombor yo\'q'}</T>
+                  <T size="xs" color={colors.textDim} weight="600">{ombor ? '—' : "ombor yo'q"}</T>
                 )}
               </TouchableOpacity>
             ))}

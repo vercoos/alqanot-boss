@@ -117,7 +117,7 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
-        <NavigationContainer theme={navTheme}>
+        <NavigationContainer key={resolved} theme={navTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {!user ? (
               <Stack.Screen name="Login" component={Login} />
