@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ScrollView, View, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ScrollView, View, RefreshControl, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -29,9 +29,12 @@ export default function Dashboard({ navigation }: any) {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: 34 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.primary} />}>
 
-      <View style={{ paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <T size="sm" color={colors.textMuted} weight="600">{greeting}</T>
-        <T size="xxl" weight="800" numberOfLines={1} style={{ marginTop: 2 }}>{user?.full_name || user?.email || 'Boshliq'}</T>
+      <View style={{ paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <T size="sm" color={colors.textMuted} weight="600">{greeting}</T>
+          <T size="xxl" weight="800" numberOfLines={1} style={{ marginTop: 2 }}>{user?.full_name || user?.email || 'Boshliq'}</T>
+        </View>
+        <Image source={require('../../assets/icon.png')} style={{ width: 44, height: 44, borderRadius: 12 }} resizeMode="contain" />
       </View>
 
       <View style={{ padding: spacing.lg }}>

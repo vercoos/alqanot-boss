@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "AL QANOT",
+    "name": "EL QANOT",
     "slug": "alqanot",
     "scheme": "alqanot",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,13 +11,13 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#E06A28"
+      "backgroundColor": "#FFFFFF"
     },
     "assetBundlePatterns": ["**/*"],
     "plugins": [
       ["expo-location", {
-        "locationAlwaysAndWhenInUsePermission": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun.",
-        "locationWhenInUsePermission": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun."
+        "locationAlwaysAndWhenInUsePermission": "EL QANOT kuryer joylashuvini boshliqqa uzatishi uchun.",
+        "locationWhenInUsePermission": "EL QANOT kuryer joylashuvini boshliqqa uzatishi uchun."
       }],
       ["expo-build-properties", {
         "android": { "usesCleartextTraffic": true }
@@ -25,8 +25,12 @@
     ],
     "android": {
       "package": "uz.alqanot.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": ["INTERNET", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "ios": {
@@ -34,8 +38,8 @@
       "bundleIdentifier": "uz.alqanot.app",
       "infoPlist": {
         "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true },
-        "NSLocationWhenInUseUsageDescription": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "AL QANOT kuryer joylashuvini boshliqqa uzatishi uchun."
+        "NSLocationWhenInUseUsageDescription": "EL QANOT kuryer joylashuvini boshliqqa uzatishi uchun.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "EL QANOT kuryer joylashuvini boshliqqa uzatishi uchun."
       }
     },
     "extra": {
