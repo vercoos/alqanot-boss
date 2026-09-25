@@ -22,7 +22,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uz.alqanot.boss"
+      "bundleIdentifier": "uz.alqanot.boss",
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+      }
     },
     "extra": {
       "apiBase": "http://72.60.17.70:6010"
