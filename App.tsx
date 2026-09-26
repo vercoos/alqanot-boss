@@ -13,6 +13,7 @@ import { useAuth } from './src/store';
 import { useTheme, colors } from './src/theme';
 import { connectSocket, disconnectSocket, startTracking, stopTracking } from './src/socket';
 import HaritaScreen from './src/screens/Harita';
+import YetkazishScreen from './src/screens/Yetkazish';
 import YuklarScreen from './src/screens/Yuklar';
 import KuryerXaritaScreen from './src/screens/KuryerXarita';
 import KuryerProfilScreen from './src/screens/KuryerProfil';
@@ -148,6 +149,7 @@ function AppRoot() {
           ) : (
             <>
               <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="Yetkazish" component={YetkazishScreen} />
               <Stack.Screen name="Hisobot" component={ReportScreen} />
               <Stack.Screen name="Yetkazuvchilar" component={SuppliersScreen} />
               <Stack.Screen name="Ombor" component={WarehouseScreen} />

@@ -44,6 +44,7 @@ export default function Profile({ navigation }: any) {
       <T size="sm" weight="700" color={colors.textMuted} style={{ marginVertical: 8, marginLeft: 4 }}>HISOBOT</T>
       <Setting icon="bar-chart-outline" label="Hisobotlar" value="Kunlik · oylik · yillik + Excel" onPress={() => navigation.navigate('Hisobot')} />
       <T size="sm" weight="700" color={colors.textMuted} style={{ marginVertical: 8, marginTop: spacing.lg, marginLeft: 4 }}>BOSHQARUV</T>
+      <Setting icon="bicycle-outline" label="Yetkazish (kuryerga biriktirish)" value="Yuk yaratish · kuryerga berish · kuzatish" onPress={() => navigation.navigate('Yetkazish')} />
       <Setting icon="time-outline" label="Tarix" value="Sotuv · xarid · qaytarish · chek" onPress={() => navigation.navigate('Tarix')} />
       <Setting icon="cube-outline" label="Yetkazib beruvchilar" value="Qarzlar · kirim (kelgan yuk) · to'lov" onPress={() => navigation.navigate('Yetkazuvchilar')} />
       <Setting icon="return-down-back-outline" label="Qaytarish (razvrad)" value="Mijozdan / yetkazuvchiga qaytarish" onPress={() => navigation.navigate('Qaytarish')} />

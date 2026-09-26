@@ -64,8 +64,12 @@ export default function Dashboard({ navigation }: any) {
 
             <Section>TEZKOR AMALLAR</Section>
             <Row gap={spacing.md}>
-              <Quick icon="time-outline" label="Tarix" onPress={() => navigation.navigate('Tarix')} />
+              <Quick icon="bicycle-outline" label="Yetkazish" onPress={() => navigation.navigate('Yetkazish')} />
               <Quick icon="bar-chart-outline" label="Hisobot" onPress={() => navigation.navigate('Hisobot')} />
+            </Row>
+            <Row gap={spacing.md} style={{ marginTop: spacing.md }}>
+              <Quick icon="time-outline" label="Tarix" onPress={() => navigation.navigate('Tarix')} />
+              <Quick icon="map-outline" label="Xarita" onPress={() => navigation.navigate('Xarita')} />
             </Row>
             <Row gap={spacing.md} style={{ marginTop: spacing.md }}>
               <Quick icon="return-down-back-outline" label="Qaytarish" onPress={() => navigation.navigate('Qaytarish')} />
