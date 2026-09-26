@@ -5,7 +5,7 @@ import { store as sec, signIn, setUnauthHandler } from './api';
 
 const K_PIN = 'scbos-pin';
 
-interface BossUser { email?: string; name?: string; id?: number; }
+interface BossUser { email?: string; name?: string; id?: number; role?: string; phone?: string; }
 interface S {
   user: BossUser | null; hydrated: boolean; locked: boolean; hasPin: boolean; biometric: boolean;
   hydrate: () => Promise<void>;
@@ -42,7 +42,7 @@ export const useAuth = create<S>((set, get) => ({
   },
   async login(email, password) {
     const { user } = await signIn(email, password);
-    const prof = { email: user?.email || email, name: user?.firstName || user?.name || user?.fullName, id: user?.id };
+    const prof = { email: user?.email || email, name: user?.firstName || user?.name || user?.fullName, id: user?.id, role: user?.role, phone: user?.phone };
     await AsyncStorage.setItem('scbos_prof', JSON.stringify(prof));
     set({ user: prof, locked: false });
   },

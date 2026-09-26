@@ -11,8 +11,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useAuth } from './src/store';
 import { useTheme, colors } from './src/theme';
-import { connectSocket, disconnectSocket } from './src/socket';
+import { connectSocket, disconnectSocket, startTracking, stopTracking } from './src/socket';
 import HaritaScreen from './src/screens/Harita';
+import YuklarScreen from './src/screens/Yuklar';
+import KuryerXaritaScreen from './src/screens/KuryerXarita';
+import KuryerProfilScreen from './src/screens/KuryerProfil';
 import LoginScreen from './src/screens/Login';
 import LockScreen from './src/screens/Lock';
 import DashboardScreen from './src/screens/Dashboard';
@@ -62,7 +65,29 @@ const ICONS: Record<string, [string, string]> = {
   Xarita: ['map', 'map-outline'],
   Mijozlar: ['people', 'people-outline'],
   Boshqa: ['grid', 'grid-outline'],
+  Yuklar: ['cube', 'cube-outline'],
+  Profil: ['person', 'person-outline'],
 };
+
+// Kuryer interfeysi — bos oynalari ko'rinmaydi
+function KuryerTabs() {
+  return (
+    <Tab.Navigator screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarStyle: { backgroundColor: colors.bgElevated, borderTopColor: colors.border, height: 68, paddingBottom: 10, paddingTop: 8 },
+      tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.textMuted,
+      tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+      tabBarIcon: ({ color, size, focused }) => {
+        const [on, off] = ICONS[route.name] || ['ellipse', 'ellipse-outline'];
+        return <Ionicons name={(focused ? on : off) as any} size={size - 1} color={color} />;
+      },
+    })}>
+      <Tab.Screen name="Yuklar" component={YuklarScreen} />
+      <Tab.Screen name="Xarita" component={KuryerXaritaScreen} />
+      <Tab.Screen name="Profil" component={KuryerProfilScreen} />
+    </Tab.Navigator>
+  );
+}
 
 function MainTabs() {
   return (
@@ -96,13 +121,13 @@ function AppRoot() {
   const resolved = useTheme((s) => s.resolved);
 
   useEffect(() => { Promise.resolve(hydrate()).catch(() => {}); Promise.resolve(themeHydrate()).catch(() => {}); }, [hydrate, themeHydrate]);
-  // Kirganda: GPS ruxsatini so'raymiz (xarita "Siz") + jonli socketga ulanamiz (kuryerlar/tasdiqlash)
+  // Kirganda: GPS ruxsatini so'raymiz + socket. Kuryer bo'lsa fonda GPS uzatadi (boshliq xaritasida ko'rinadi).
   useEffect(() => {
     if (user && !locked) {
       Location.requestForegroundPermissionsAsync().catch(() => {});
-      connectSocket();
+      if (user.role === 'kuryer') startTracking(); else connectSocket();
     } else if (!user) {
-      disconnectSocket();
+      stopTracking(); disconnectSocket();
     }
   }, [user, locked]);
   if (!hydrated || !themeReady) return <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.primary} size="large" /></View>;
@@ -118,6 +143,8 @@ function AppRoot() {
             <Stack.Screen name="Login" component={LoginScreen} />
           ) : locked ? (
             <Stack.Screen name="Lock" component={LockScreen} />
+          ) : user.role === 'kuryer' ? (
+            <Stack.Screen name="KuryerMain" component={KuryerTabs} />
           ) : (
             <>
               <Stack.Screen name="Main" component={MainTabs} />
