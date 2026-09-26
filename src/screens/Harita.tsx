@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, ActivityIndicator, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, ActivityIndicator, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { api } from '../api';
 import { connectSocket, getSocket } from '../socket';
 import { Header, T, Badge } from '../components/ui';
@@ -27,8 +28,39 @@ export default function Harita() {
   const [sel, setSel] = useState<number | null>(null);
   const [ombor, setOmbor] = useState<any>(null);
   const [picking, setPicking] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   const inject = (js: string) => { try { web.current?.injectJavaScript(js + ';true;'); } catch {} };
+
+  // Native joylashuv — ruxsat so'raydi, GPS o'chiq bo'lsa ogohlantiradi (WebView geolocation'ga ishonmaymiz)
+  const getPos = useCallback(async (): Promise<{ lat: number; lng: number } | null> => {
+    let perm = await Location.getForegroundPermissionsAsync();
+    if (perm.status !== 'granted') perm = await Location.requestForegroundPermissionsAsync();
+    if (perm.status !== 'granted') {
+      Alert.alert('Joylashuv ruxsati kerak', 'Joriy joylashuvni aniqlash uchun ilovaga joylashuv ruxsatini bering.', [
+        { text: 'Bekor', style: 'cancel' },
+        { text: 'Sozlamalar', onPress: () => Linking.openSettings().catch(() => {}) },
+      ]);
+      return null;
+    }
+    try {
+      const enabled = await Location.hasServicesEnabledAsync();
+      if (!enabled) { Alert.alert('GPS o\'chiq', 'Iltimos, telefoningizda joylashuv (GPS)ni yoqing.'); return null; }
+      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      return { lat: p.coords.latitude, lng: p.coords.longitude };
+    } catch {
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) return { lat: last.coords.latitude, lng: last.coords.longitude };
+      Alert.alert('Joylashuv', 'Joylashuvni aniqlab bo\'lmadi. GPS yoqilganini tekshiring va qayta urining.');
+      return null;
+    }
+  }, []);
+
+  const showMe = useCallback(async () => {
+    setLocating(true);
+    try { const p = await getPos(); if (p && ready.current) inject(`window.setMe(${p.lat},${p.lng},true)`); }
+    finally { setLocating(false); }
+  }, [getPos]);
 
   const loadAll = useCallback(async () => {
     try {
@@ -44,7 +76,7 @@ export default function Harita() {
     } catch {}
   }, []);
 
-  // Socket — o'zi ulanadi (idempotent), keyin tinglaydi. "Ulanmoqda" osilib qolmaydi.
+  // Socket — o'zi ulanadi, keyin tinglaydi.
   useEffect(() => {
     let s: any = null; let cleanup = () => {};
     (async () => {
@@ -68,6 +100,7 @@ export default function Harita() {
       if (m.type === 'ready') { ready.current = true; loadAll(); }
       else if (m.type === 'eta') { setEtas((m.list || []).sort((a: Eta, b: Eta) => (a.min ?? 1e9) - (b.min ?? 1e9))); }
       else if (m.type === 'pick') { saveOmbor(m.lat, m.lng); }
+      else if (m.type === 'locate') { showMe(); }
     } catch {}
   };
 
@@ -75,12 +108,22 @@ export default function Harita() {
   const cancelPick = () => { setPicking(false); inject('window.cancelPick()'); };
   const confirmPick = () => { inject('window.confirmPick()'); };
 
+  // Ombor belgilash: joriy joylashuv YOKI xaritadan tanlash
+  const omborMenu = () => {
+    Alert.alert('Ombor joylashuvi', 'Omborni qanday belgilaysiz?', [
+      { text: 'Joriy joylashuvim', onPress: async () => { const p = await getPos(); if (p) saveOmbor(p.lat, p.lng); } },
+      { text: 'Xaritadan tanlash', onPress: startPick },
+      { text: 'Bekor', style: 'cancel' },
+    ]);
+  };
+
   const saveOmbor = async (lat: number, lng: number) => {
     try {
       const o = await api.rootPost('/api/settings/ombor', { lat, lng, name: 'Ombor' });
       setOmbor(o); setPicking(false);
       inject(`window.setOmbor(${JSON.stringify(o)})`);
-      Alert.alert('Saqlandi', 'Ombor joylashuvi belgilandi');
+      inject(`window.setMe(${lat},${lng},false)`);
+      Alert.alert('Saqlandi', 'Ombor joylashuvi belgilandi ✓');
     } catch (err: any) { Alert.alert('Xato', err.message); setPicking(false); }
   };
 
@@ -100,6 +143,12 @@ export default function Harita() {
           style={{ flex: 1, backgroundColor: colors.bg }}
         />
 
+        {/* "Siz" (native GPS) tugmasi — o'ng past */}
+        <TouchableOpacity onPress={showMe} activeOpacity={0.85}
+          style={{ position: 'absolute', right: 12, bottom: 78, width: 46, height: 46, borderRadius: 14, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, elevation: 4 }}>
+          {locating ? <ActivityIndicator size="small" color={colors.info} /> : <Ionicons name="locate" size={22} color={colors.info} />}
+        </TouchableOpacity>
+
         {picking ? (
           <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity onPress={cancelPick} style={{ flex: 1, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 14, alignItems: 'center' }}>
@@ -111,7 +160,7 @@ export default function Harita() {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity onPress={startPick} style={{ position: 'absolute', top: 12, left: 12, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <TouchableOpacity onPress={omborMenu} style={{ position: 'absolute', top: 12, left: 12, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 5, elevation: 3 }}>
             <Ionicons name="business" size={16} color={colors.success} />
             <T size="sm" weight="800" color={colors.success}>{ombor ? "Omborni o'zgartirish" : 'Omborni belgilash'}</T>
           </TouchableOpacity>

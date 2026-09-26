@@ -59,16 +59,15 @@ window.focusCourier=function(id){var c=data[id];if(c)map.setView([c.lat,c.lng],1
 window.enterPickMode=function(){pick=true;document.getElementById('cross').classList.add('on');document.getElementById('hint').classList.add('on');if(ombor)map.setView([ombor.lat,ombor.lng],15);};
 window.confirmPick=function(){if(!pick)return;pick=false;document.getElementById('cross').classList.remove('on');document.getElementById('hint').classList.remove('on');var c=map.getCenter();post({type:'pick',lat:c.lat,lng:c.lng});};
 window.cancelPick=function(){pick=false;document.getElementById('cross').classList.remove('on');document.getElementById('hint').classList.remove('on');};
-window.locateMe=function(){
-  if(!navigator.geolocation){return;}
-  navigator.geolocation.getCurrentPosition(function(p){
-    var ll=[p.coords.latitude,p.coords.longitude];
-    if(meMarker)meMarker.setLatLng(ll);
-    else meMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="me-dot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindTooltip('Siz',{permanent:false,direction:'top',className:'lbl'});
-    map.setView(ll,15);
-  },function(){},{enableHighAccuracy:true,timeout:8000});
+// Native (expo-location) koordinatani "Siz" markeri qilib qo'yadi — WebView geolocation'ga ishonmaydi
+window.setMe=function(lat,lng,center){
+  var ll=[lat,lng];
+  if(meMarker)meMarker.setLatLng(ll);
+  else meMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="me-dot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindTooltip('Siz',{permanent:false,direction:'top',className:'lbl'});
+  if(center!==false)map.setView(ll,16);
 };
-document.getElementById('locate').onclick=window.locateMe;
+// Locate tugmasi bosilganda — RN native GPS oladi (ishonchli)
+document.getElementById('locate').onclick=function(){post({type:'locate'});};
 function pushEta(){var list=Object.keys(data).map(function(k){var c=data[k];var e=eta(c);return{id:c.courier_id,name:c.name||c.full_name||'Kuryer',km:e?e.km:null,min:e?e.min:null,updated_at:c.updated_at};});post({type:'eta',list:list});}
 post({type:'ready'});
 </script></body></html>`;
