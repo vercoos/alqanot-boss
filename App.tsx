@@ -13,6 +13,7 @@ import { useAuth } from './src/store';
 import { useTheme, colors } from './src/theme';
 import { connectSocket, disconnectSocket, startTracking, stopTracking } from './src/socket';
 import HaritaScreen from './src/screens/Harita';
+import TasdiqlashScreen from './src/screens/Tasdiqlash';
 import YetkazishScreen from './src/screens/Yetkazish';
 import YuklarScreen from './src/screens/Yuklar';
 import KuryerXaritaScreen from './src/screens/KuryerXarita';
@@ -65,6 +66,7 @@ const ICONS: Record<string, [string, string]> = {
   Sotuv: ['cart', 'cart-outline'],
   Xarita: ['map', 'map-outline'],
   Mijozlar: ['people', 'people-outline'],
+  Tasdiqlash: ['checkmark-done-circle', 'checkmark-done-circle-outline'],
   Boshqa: ['grid', 'grid-outline'],
   Yuklar: ['cube', 'cube-outline'],
   Profil: ['person', 'person-outline'],
@@ -105,7 +107,7 @@ function MainTabs() {
       <Tab.Screen name="Home" component={DashboardScreen} options={{ title: 'Asosiy' }} />
       <Tab.Screen name="Sotuv" component={SaleScreen} options={{ title: 'Sotuv' }} />
       <Tab.Screen name="Xarita" component={HaritaScreen} options={{ title: 'Xarita' }} />
-      <Tab.Screen name="Mijozlar" component={ClientsScreen} options={{ title: 'Mijozlar' }} />
+      <Tab.Screen name="Tasdiqlash" component={TasdiqlashScreen} options={{ title: 'Tasdiq' }} />
       <Tab.Screen name="Boshqa" component={ProfileScreen} options={{ title: 'Boshqa' }} />
     </Tab.Navigator>
   );
@@ -149,6 +151,7 @@ function AppRoot() {
           ) : (
             <>
               <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="Mijozlar" component={ClientsScreen} />
               <Stack.Screen name="Yetkazish" component={YetkazishScreen} />
               <Stack.Screen name="Hisobot" component={ReportScreen} />
               <Stack.Screen name="Yetkazuvchilar" component={SuppliersScreen} />

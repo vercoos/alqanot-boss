@@ -10,7 +10,13 @@ import { Header, T, Badge } from '../components/ui';
 import { MAP_HTML } from '../mapHtml';
 import { colors, spacing, radii } from '../theme';
 
-type Eta = { id: number; name: string; km: number | null; min: number | null; updated_at?: string };
+type Eta = { id: number; name: string; km: number | null; min: number | null; heading?: number | null; speed?: number | null; updated_at?: string };
+
+const DIRS = ['Sh', 'ShShq', 'Shq', 'JShq', 'J', 'JGb', 'Gb', 'ShGb'];
+function dirLabel(h?: number | null) {
+  if (h == null || isNaN(h)) return null;
+  return DIRS[Math.round(((h % 360) / 45)) % 8];
+}
 
 function ago(ts?: string) {
   if (!ts) return '—';
@@ -29,6 +35,7 @@ export default function Harita() {
   const [ombor, setOmbor] = useState<any>(null);
   const [picking, setPicking] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [route, setRoute] = useState<{ id: number; min: number; km: number } | null>(null);
 
   const inject = (js: string) => { try { web.current?.injectJavaScript(js + ';true;'); } catch {} };
 
@@ -101,6 +108,7 @@ export default function Harita() {
       else if (m.type === 'eta') { setEtas((m.list || []).sort((a: Eta, b: Eta) => (a.min ?? 1e9) - (b.min ?? 1e9))); }
       else if (m.type === 'pick') { saveOmbor(m.lat, m.lng); }
       else if (m.type === 'locate') { showMe(); }
+      else if (m.type === 'route') { setRoute({ id: m.id, min: m.min, km: m.km }); }
     } catch {}
   };
 
@@ -127,7 +135,7 @@ export default function Harita() {
     } catch (err: any) { Alert.alert('Xato', err.message); setPicking(false); }
   };
 
-  const focus = (id: number) => { setSel(id); inject(`window.focusCourier(${id})`); };
+  const focus = (id: number) => { setSel(id); setRoute(null); inject(`window.focusCourier(${id})`); };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -182,21 +190,30 @@ export default function Harita() {
             {etas.map((c) => (
               <TouchableOpacity key={c.id} activeOpacity={0.85} onPress={() => focus(c.id)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radii.md, marginBottom: 7, backgroundColor: sel === c.id ? colors.primary + '14' : colors.bgCard, borderWidth: 1, borderColor: sel === c.id ? colors.primary : colors.border }}>
-                <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: colors.primary + '18', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="person" size={17} color={colors.primary} />
+                <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: (c.speed && c.speed > 0.8 ? colors.success : colors.primary) + '18', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={c.heading != null ? 'navigate' : 'person'} size={17} color={c.speed && c.speed > 0.8 ? colors.success : colors.primary}
+                    style={c.heading != null ? { transform: [{ rotate: `${(c.heading || 0) - 45}deg` }] } : undefined} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <T size="sm" weight="800" numberOfLines={1}>{c.name}</T>
-                  <T size="xs" color={colors.textDim} weight="600">{ago(c.updated_at)}</T>
+                  <T size="xs" color={colors.textDim} weight="600">
+                    {ago(c.updated_at)}
+                    {c.speed && c.speed > 0.8 ? ` · ${Math.round(c.speed * 3.6)} km/soat` : ' · turibdi'}
+                    {dirLabel(c.heading) ? ` · ${dirLabel(c.heading)}` : ''}
+                  </T>
                 </View>
-                {c.min != null ? (
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <T size="md" weight="900" color={colors.primary}>{c.min} daq</T>
-                    <T size="xs" color={colors.textMuted} weight="600">{c.km?.toFixed(1)} km</T>
-                  </View>
-                ) : (
-                  <T size="xs" color={colors.textDim} weight="600">{ombor ? '—' : "ombor yo'q"}</T>
-                )}
+                {(() => {
+                  const r = sel === c.id && route && route.id === c.id ? route : null;
+                  const min = r ? r.min : c.min; const km = r ? r.km : c.km;
+                  return min != null ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <T size="md" weight="900" color={colors.primary}>{min} daq</T>
+                      <T size="xs" color={colors.textMuted} weight="600">{Number(km).toFixed(1)} km{r ? ' · yo\'l' : ''}</T>
+                    </View>
+                  ) : (
+                    <T size="xs" color={colors.textDim} weight="600">{ombor ? '—' : "ombor yo'q"}</T>
+                  );
+                })()}
               </TouchableOpacity>
             ))}
           </ScrollView>

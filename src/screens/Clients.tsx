@@ -56,7 +56,7 @@ export default function Clients({ navigation }: any) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ paddingTop: 56, paddingBottom: 12, paddingHorizontal: spacing.lg, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <Row justify="space-between" style={{ marginBottom: 10 }}>
-          <View style={{ width: 26 }} />
+          {navigation?.canGoBack?.() ? <TouchableOpacity onPress={() => navigation.goBack()}><Ionicons name="chevron-back" size={26} color={colors.text} /></TouchableOpacity> : <View style={{ width: 26 }} />}
           <T size="lg" weight="800">Mijozlar</T>
           <TouchableOpacity onPress={() => setNewOpen(true)}><Ionicons name="person-add" size={24} color={colors.primary} /></TouchableOpacity>
         </Row>
